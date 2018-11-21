@@ -1,7 +1,7 @@
+import sys
 import numpy as np
-from matplotlib import pyplot as plt
 
-base_path = 'C:/Meghna/ASU/S1/FSL/project/data/'
+base_path = sys.argv[1]
 
 
 def load_fashion_mnist():
