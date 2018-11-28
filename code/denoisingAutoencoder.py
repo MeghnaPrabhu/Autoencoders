@@ -33,7 +33,8 @@ class DenoisingAutoencoder:
         learning_rate = 0.1
         decay_rate = 0.01
         corrupted_images = self.add_noise(self.train_data)
+        network_type = 'DAE'
         costs, validation_costs, parameters = \
             multi_layer_network(self.train_data, self.train_label, self.validation_data, self.validation_label,
-                                net_dims, corrupted_input=corrupted_images, num_iterations=num_iterations,
+                                net_dims, network_type, corrupted_input=corrupted_images, num_iterations=num_iterations,
                                 learning_rate=learning_rate, decay_rate=decay_rate)
