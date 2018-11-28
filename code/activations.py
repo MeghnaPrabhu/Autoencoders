@@ -184,5 +184,5 @@ class Activations:
         return mse
 
     @staticmethod
-    def mean_squared_error_der(Y,cache):
-        print()
+    def mean_squared_error_der(Y, Y_pred):
+        return (Y_pred - Y)/Y.shape[1]

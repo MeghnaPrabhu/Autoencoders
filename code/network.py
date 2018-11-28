@@ -77,6 +77,8 @@ def layer_forward(A_prev, W, b, activation):
         A, act_cache = Activations.relu(Z)
     elif activation == "linear":
         A, act_cache = Activations.linear(Z)
+    elif activation == 'sigmoid':
+        A, act_cache = Activations.sigmoid(Z)
 
     cache = {}
     cache["lin_cache"] = lin_cache
@@ -100,10 +102,10 @@ def multi_layer_forward(X, parameters):
     A = X
     caches = []
     for l in range(1, L):  # since there is no W0 and b0
-        A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "relu")
+        A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "sigmoid")
         caches.append(cache)
 
-    AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "relu")
+    AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
     caches.append(cache)
     return AL, caches
 
@@ -179,11 +181,10 @@ def multi_layer_backward(dAL, caches, parameters):
     L = len(caches)  # with one hidden layer, L = 2
     gradients = {}
     dA = dAL
-    activation = "linear"
+    activation = "sigmoid"
     for l in reversed(range(1, L + 1)):
         dA, gradients["dW" + str(l)], gradients["db" + str(l)] = \
             layer_backward(dA, caches[l - 1], parameters["W" + str(l)], parameters["b" + str(l)], activation)
-        activation = "relu"
     return gradients
 
 
@@ -254,7 +255,7 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
             # denoising autoencoder so use MSE
             cost = Activations.mean_squared_error(AL, Y)
             validation_cost = Activations.mean_squared_error(VL, validation_label)
-            dz = Activations.mean_squared_error_der(Y, cache)
+            dz = Activations.mean_squared_error_der(Y, AL)
         else:
             # stacked autoencoder
             A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
@@ -268,6 +269,7 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
         if ii % 10 == 0:
             costs.append(cost)
             validation_costs.append(validation_cost)
+
         if ii % 100 == 0:
             print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
             print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
