@@ -29,7 +29,7 @@ class DenoisingAutoencoder:
 
     def train(self):
         net_dims = [784, 1024, 784]
-        num_iterations = 500
+        num_iterations = 1000
         learning_rate = 0.1
         decay_rate = 0.01
         corrupted_images = self.add_noise(self.train_data)
