@@ -10,7 +10,7 @@ import numpy as np
 from activations import Activations
 
 
-def initialize_weights(net_dims):
+def initialize_weights(net_dims, network_type):
     '''
     Initializes the weights of the multilayer network
 
@@ -20,12 +20,19 @@ def initialize_weights(net_dims):
     Returns:
         dictionary of parameters
     '''
-    np.random.seed(0)
     numLayers = len(net_dims)
     parameters = {}
-    for l in range(numLayers - 1):
-        parameters["W" + str(l + 1)] = np.random.normal(0, np.sqrt(2.0 / net_dims[l]), (net_dims[l + 1], net_dims[l]))
-        parameters["b" + str(l + 1)] = np.random.normal(0, np.sqrt(2.0 / net_dims[l]), (net_dims[l + 1], 1))
+    if network_type == 'DAE':
+        parameters["W1"] = np.random.normal(0, np.sqrt(2.0 / net_dims[0]), (net_dims[1], net_dims[0]))
+        parameters["b1"] = np.random.normal(0, np.sqrt(2.0 / net_dims[0]), (net_dims[1], 1))
+        parameters["W2"] = parameters["W1"].T
+        # TODO: check if b1 can be initialized randomly.
+        parameters["b2"] = np.random.normal(0, np.sqrt(2.0 / net_dims[0]), (net_dims[2], 1))
+    else:
+        for l in range(numLayers - 1):
+            parameters["W" + str(l + 1)] = np.random.normal(0, np.sqrt(2.0 / net_dims[l]),
+                                                            (net_dims[l + 1], net_dims[l]))
+            parameters["b" + str(l + 1)] = np.random.normal(0, np.sqrt(2.0 / net_dims[l]), (net_dims[l + 1], 1))
     return parameters
 
 
@@ -218,30 +225,32 @@ def update_parameters(parameters, gradients, epoch, learning_rate, decay_rate=0.
     return parameters, learning_rate
 
 
-def multi_layer_network(X, Y, validation_data, validation_label, net_dims, corrupted_input=None,
+def multi_layer_network(X, Y, validation_data, validation_label, net_dims, network_type, corrupted_input=None,
                         num_iterations=500, learning_rate=0.2, decay_rate=0.01):
     '''
-    Creates the multilayer network and trains the network
 
-    Inputs:
-        X - numpy.ndarray (n,m) of training data
-        Y - numpy.ndarray (1,m) of training data labels
-        net_dims - tuple of layer dimensions
-        num_iterations - num of epochs to train
-        learning_rate - step size for gradient descent
-
-    Returns:
-        costs - list of costs over training
-        parameters - dictionary of trained network parameters
+    :param X: numpy.ndarray (n,m) of training data
+    :param Y: numpy.ndarray (1,m) of training data labels
+    :param validation_data: numpy.ndarray (n,m) of validation data
+    :param validation_label: numpy.ndarray (1,m) of validation data labels
+    :param net_dims: tuple of layer dimensions
+    :param network_type: type of autoencoder
+    :param corrupted_input: denoised input samples
+    :param num_iterations: num of epochs to train
+    :param learning_rate: step size for gradient descent
+    :return:
+     costs - list of costs over training
+     parameters - dictionary of trained network parameters
     '''
-    parameters = initialize_weights(net_dims)
+
+    parameters = initialize_weights(net_dims, network_type)
     costs = []
     validation_costs = []
     for ii in range(num_iterations):
         # Forward Prop
         AL, caches = multi_layer_forward(X, parameters)
         VL, validation_caches = multi_layer_forward(validation_data, parameters)
-        if len(net_dims) - 2 == 1:
+        if network_type == 'DAE':
             # denoising autoencoder so use MSE
             cost = Activations.mean_squared_error(AL, Y)
         else:
