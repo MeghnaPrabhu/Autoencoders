@@ -19,7 +19,12 @@ def split_training_data(train_data_initial, train_label_initial):
 
 
 if __name__ == "__main__":
-    train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist()
+    train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(noTrSamples=5000,
+                                                                                        noTsSamples=1000,
+                                                                                        digit_range=[0, 1, 2, 3, 4, 5,
+                                                                                                     6, 7, 8, 9],
+                                                                                        noTrPerClass=500,
+                                                                                        noTsPerClass=100)
     train_data, train_label, validation_data, validation_label, test_data, test_label = \
         split_training_data(train_data_initial, train_label_initial)
     keep_running = True
