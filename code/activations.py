@@ -182,3 +182,7 @@ class Activations:
     def mean_squared_error(Z, Y):
         mse = np.mean((Z - Y) ** 2)
         return mse
+
+    @staticmethod
+    def mean_squared_error_der(Y,cache):
+        print()

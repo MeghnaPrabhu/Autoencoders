@@ -103,7 +103,7 @@ def multi_layer_forward(X, parameters):
         A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "relu")
         caches.append(cache)
 
-    AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "linear")
+    AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "relu")
     caches.append(cache)
     return AL, caches
 
@@ -253,6 +253,8 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
         if network_type == 'DAE':
             # denoising autoencoder so use MSE
             cost = Activations.mean_squared_error(AL, Y)
+            validation_cost = Activations.mean_squared_error(VL, validation_label)
+            dz = Activations.mean_squared_error_der(Y, cache)
         else:
             # stacked autoencoder
             A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
