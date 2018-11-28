@@ -35,9 +35,9 @@ if __name__ == "__main__":
             DenoisingAutoencoder(train_data, train_label, validation_data,
                                  validation_label, test_data, test_label).train()
         elif network_option == 2:
-            StackedAutoencoder(train_data, train_label, validation_data,
+            stacked_AE =StackedAutoencoder(train_data, train_label, validation_data,
                                validation_label, test_data, test_label)
-
+            stacked_AE.train()
         print("Press N to stop")
         input_option = input()
         if input_option == "N":
