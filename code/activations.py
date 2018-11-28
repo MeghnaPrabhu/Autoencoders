@@ -177,3 +177,8 @@ class Activations:
         one_hot_targets = np.array([np.eye(cache['A'].shape[0])[int(Y[0][int(i)])] for i in range(Y.shape[1])]).T
         dZ = cache['A'] - one_hot_targets
         return dZ / cache['A'].shape[1]
+
+    @staticmethod
+    def mean_squared_error(Z, Y):
+        mse = np.mean((Z - Y) ** 2)
+        return mse

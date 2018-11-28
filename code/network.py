@@ -218,8 +218,8 @@ def update_parameters(parameters, gradients, epoch, learning_rate, decay_rate=0.
     return parameters, learning_rate
 
 
-def multi_layer_network(X, Y, validation_data, validation_label, net_dims, num_iterations=500, learning_rate=0.2,
-                        decay_rate=0.01):
+def multi_layer_network(X, Y, validation_data, validation_label, net_dims, corrupted_input=None,
+                        num_iterations=500, learning_rate=0.2, decay_rate=0.01):
     '''
     Creates the multilayer network and trains the network
 
@@ -241,11 +241,17 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, num_i
         # Forward Prop
         AL, caches = multi_layer_forward(X, parameters)
         VL, validation_caches = multi_layer_forward(validation_data, parameters)
-        A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
-        validation_prediction, validation_cache, validation_cost = \
-            Activations.softmax_cross_entropy_loss(VL, validation_label)
+        if len(net_dims) - 2 == 1:
+            # denoising autoencoder so use MSE
+            cost = Activations.mean_squared_error(AL, Y)
+        else:
+            # stacked autoencoder
+            A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
+            validation_prediction, validation_cache, validation_cost = \
+                Activations.softmax_cross_entropy_loss(VL, validation_label)
+            dz = Activations.softmax_cross_entropy_loss_der(Y, cache)
+
         # Backward Prop
-        dz = Activations.softmax_cross_entropy_loss_der(Y, cache)
         gradients = multi_layer_backward(dz, caches, parameters)
         parameters, alpha = update_parameters(parameters, gradients, ii, learning_rate, decay_rate)
         if ii % 10 == 0:
