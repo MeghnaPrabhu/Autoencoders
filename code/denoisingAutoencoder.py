@@ -19,13 +19,13 @@ class DenoisingAutoencoder:
         noise_level = 400
         # setting 400 random pixels to 0 in every image
         corrupted_images = []
-        for original_image in input_data:
-            corrupted_pixels = np.random.randint(0, original_image.shape[0], noise_level)
-            corrupted_image = copy.copy(original_image)
+        for i in range(input_data.shape[1]):
+            corrupted_pixels = np.random.randint(0, input_data.shape[0], noise_level)
+            corrupted_image = copy.copy(input_data[:, i])
             for pixel in corrupted_pixels:
                 corrupted_image[pixel] = 0
             corrupted_images.append(corrupted_image)
-        return np.array(corrupted_images)
+        return np.array(corrupted_images).T
 
     def train(self):
         net_dims = [784, 1024, 784]
