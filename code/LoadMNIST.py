@@ -1,10 +1,6 @@
-import sys
 import numpy as np
 
-base_path = sys.argv[1]
-
-
-def load_fashion_mnist(noTrSamples=1000, noTsSamples=100, digit_range=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+def load_fashion_mnist(base_path, noTrSamples=1000, noTsSamples=100, digit_range=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                        noTrPerClass=100, noTsPerClass=10):
     fd = open(base_path + 'train-images-idx3-ubyte')
     loaded = np.fromfile(file=fd, dtype=np.uint8)

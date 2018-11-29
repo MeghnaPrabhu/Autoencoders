@@ -2,6 +2,7 @@ import numpy as np
 from LoadMNIST import load_fashion_mnist
 from denoisingAutoencoder import DenoisingAutoencoder
 from stackedAutoencoders import StackedAutoencoder
+import sys
 
 
 def split_training_data(train_data_initial, train_label_initial):
@@ -19,11 +20,17 @@ def split_training_data(train_data_initial, train_label_initial):
 
 
 if __name__ == "__main__":
-    train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(noTrSamples=5000,
+    base_path = sys.argv[1]
+    print("Enter number of training data:")
+    train_count = int(input())
+    noTrSamples = train_count
+    noTrPerClass = noTrSamples/10
+    train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(base_path,
+                                                                                        noTrSamples=noTrSamples,
                                                                                         noTsSamples=1000,
                                                                                         digit_range=[0, 1, 2, 3, 4, 5,
                                                                                                      6, 7, 8, 9],
-                                                                                        noTrPerClass=500,
+                                                                                        noTrPerClass=int(noTrPerClass),
                                                                                         noTsPerClass=100)
     train_data, train_label, validation_data, validation_label, test_data, test_label = \
         split_training_data(train_data_initial, train_label_initial)
@@ -31,8 +38,9 @@ if __name__ == "__main__":
     while keep_running:
         print("Select network 1. Denoising Autoencoder 2. Stacked Autoencoder: ")
         network_option = int(input())
+
         if network_option == 1:
-            DenoisingAutoencoder(train_data, train_label, validation_data,
+            DenoisingAutoencoder(base_path, train_data, train_label, validation_data,
                                  validation_label, test_data, test_label).train()
         elif network_option == 2:
             stacked_AE =StackedAutoencoder(train_data, train_label, validation_data,
