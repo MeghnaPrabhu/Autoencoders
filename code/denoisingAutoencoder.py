@@ -49,7 +49,7 @@ class DenoisingAutoencoder:
                 multi_layer_network(self.train_data, self.train_label, self.validation_data, self.validation_label,
                                     net_dims, network_type, corrupted_input=corrupted_images, num_iterations=num_iterations,
                                     learning_rate=learning_rate, decay_rate=decay_rate)
-            np.save(parameters_path)
+            np.save(parameters_path, parameters)
 
         '''For verification'''
         AL, cache = multi_layer_forward(corrupted_images, parameters)
