@@ -9,7 +9,6 @@ Oct 2018
 import numpy as np
 from activations import Activations
 
-
 def initialize_weights(net_dims, network_type):
     '''
     Initializes the weights of the multilayer network
@@ -88,7 +87,7 @@ def layer_forward(A_prev, W, b, activation):
     return A, cache
 
 
-def multi_layer_forward(X, parameters):
+def multi_layer_forward(X, parameters, activation_h, activation_f):
     '''
     Forward propgation through the layers of the network
 
@@ -104,10 +103,10 @@ def multi_layer_forward(X, parameters):
     A = X
     caches = []
     for l in range(1, L):  # since there is no W0 and b0
-        A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "tanh")
+        A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], activation_h)
         caches.append(cache)
 
-    AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
+    AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], activation_f)
     caches.append(cache)
     return AL, caches
 
@@ -166,7 +165,7 @@ def layer_backward(dA, cache, W, b, activation):
     return dA_prev, dW, db
 
 
-def multi_layer_backward(dAL, caches, parameters):
+def multi_layer_backward(dAL, caches, parameters, activation_h, activation_f):
     '''
     Back propgation through the layers of the network (except softmax cross entropy)
     softmax_cross_entropy can be handled separately
@@ -183,11 +182,11 @@ def multi_layer_backward(dAL, caches, parameters):
     L = len(caches)  # with one hidden layer, L = 2
     gradients = {}
     dA = dAL
-    activation = "tanh"
+    activation = activation_f
     for l in reversed(range(1, L + 1)):
         dA, gradients["dW" + str(l)], gradients["db" + str(l)] = \
             layer_backward(dA, caches[l - 1], parameters["W" + str(l)], parameters["b" + str(l)], activation)
-        activation = "sigmoid"
+        activation = activation_h
 
     return gradients
 
@@ -231,7 +230,7 @@ def update_parameters(parameters, gradients, epoch, learning_rate, decay_rate=0.
 
 
 def multi_layer_network(X, Y, validation_data, validation_label, net_dims, network_type, corrupted_input=None,
-                        num_iterations=500, learning_rate=0.2, decay_rate=0.01):
+                        num_iterations=500, learning_rate=0.2, decay_rate=0.01, activation_h ='sigmoid', activation_f = 'sigmoid'):
     '''
 
     :param X: numpy.ndarray (n,m) of training data
@@ -248,26 +247,28 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
      parameters - dictionary of trained network parameters
     '''
 
+    activation_h = activation_h
+    activation_f = activation_f
     parameters = initialize_weights(net_dims, network_type)
     costs = []
     validation_costs = []
     for ii in range(num_iterations):
         # Forward Prop
-        AL, caches = multi_layer_forward(corrupted_input, parameters)
+        AL, caches = multi_layer_forward(corrupted_input, parameters, activation_h, activation_f)
         if network_type == 'DAE':
             # denoising autoencoder so use MSE
             cost = Activations.mean_squared_error(AL, X)
             dz = Activations.mean_squared_error_der(X, AL)
         else:
             # stacked autoencoder
-            VL, validation_caches = multi_layer_forward(validation_data, parameters)
+            VL, validation_caches = multi_layer_forward(validation_data, parameters, activation_h, activation_f)
             A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
             validation_prediction, validation_cache, validation_cost = \
                 Activations.softmax_cross_entropy_loss(VL, validation_label)
             dz = Activations.softmax_cross_entropy_loss_der(Y, cache)
 
         # Backward Prop
-        gradients = multi_layer_backward(dz, caches, parameters)
+        gradients = multi_layer_backward(dz, caches, parameters, activation_h, activation_f)
         parameters, alpha = update_parameters(parameters, gradients, ii, learning_rate, decay_rate)
         if ii % 10 == 0:
             costs.append(cost)
