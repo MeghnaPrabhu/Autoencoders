@@ -4,6 +4,7 @@ from network import multi_layer_network
 from network import multi_layer_forward
 import matplotlib.pyplot as plt
 from pathlib import Path
+import pickle
 
 
 class DenoisingAutoencoder:
@@ -40,17 +41,16 @@ class DenoisingAutoencoder:
         network_type = 'DAE'
 
         parameters_path = self.base_path + "/" + "parameters" + str(learning_rate).replace(".", "_") + str(net_dims[0]) + str(
-                net_dims[1]) + str(net_dims[2]) + ".npy"
-        parameters = Path(parameters_path)
-        if parameters.is_file():
-            parameters = np.load(parameters_path)
-        else:
+                 net_dims[1]) + str(net_dims[2])
+        try:
+            parameters = pickle.load(open(parameters_path + ".pickle", "rb"))
+        except (OSError, IOError) as e:
+
             costs, validation_costs, parameters = \
                 multi_layer_network(self.train_data, self.train_label, self.validation_data, self.validation_label,
                                     net_dims, network_type, corrupted_input=corrupted_images, num_iterations=num_iterations,
                                     learning_rate=learning_rate, decay_rate=decay_rate)
-            np.save(parameters_path, parameters)
-
+            pickle.dump(parameters, open(parameters_path + ".pickle", "wb"))
         '''For verification'''
         AL, cache = multi_layer_forward(corrupted_images, parameters)
         for i in range(0, self.train_data.shape[1], int(self.train_data.shape[1]/10)):
@@ -59,7 +59,6 @@ class DenoisingAutoencoder:
             fig.set_size_inches(18.5, 10.5, forward=True)
             ax1.imshow(np.reshape(self.train_data.T[i], (28, 28)))
             ax1.set_title("Actual Input")
-            # plt.show()
 
             ax2.imshow(np.reshape(corrupted_images.T[i], (28, 28)))
             ax2.set_title("Noised input")
