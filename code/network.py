@@ -79,6 +79,8 @@ def layer_forward(A_prev, W, b, activation):
         A, act_cache = Activations.linear(Z)
     elif activation == 'sigmoid':
         A, act_cache = Activations.sigmoid(Z)
+    elif activation == 'tanh':
+        A, act_cache = Activations.tanh(Z)
 
     cache = {}
     cache["lin_cache"] = lin_cache
@@ -102,7 +104,7 @@ def multi_layer_forward(X, parameters):
     A = X
     caches = []
     for l in range(1, L):  # since there is no W0 and b0
-        A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "sigmoid")
+        A, cache = layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "tanh")
         caches.append(cache)
 
     AL, cache = layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "sigmoid")
@@ -181,10 +183,12 @@ def multi_layer_backward(dAL, caches, parameters):
     L = len(caches)  # with one hidden layer, L = 2
     gradients = {}
     dA = dAL
-    activation = "sigmoid"
+    activation = "tanh"
     for l in reversed(range(1, L + 1)):
         dA, gradients["dW" + str(l)], gradients["db" + str(l)] = \
             layer_backward(dA, caches[l - 1], parameters["W" + str(l)], parameters["b" + str(l)], activation)
+        activation = "sigmoid"
+
     return gradients
 
 
@@ -250,14 +254,13 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
     for ii in range(num_iterations):
         # Forward Prop
         AL, caches = multi_layer_forward(corrupted_input, parameters)
-        VL, validation_caches = multi_layer_forward(validation_data, parameters)
         if network_type == 'DAE':
             # denoising autoencoder so use MSE
             cost = Activations.mean_squared_error(AL, X)
-            validation_cost = Activations.mean_squared_error(VL, validation_label)
             dz = Activations.mean_squared_error_der(X, AL)
         else:
             # stacked autoencoder
+            VL, validation_caches = multi_layer_forward(validation_data, parameters)
             A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
             validation_prediction, validation_cache, validation_cost = \
                 Activations.softmax_cross_entropy_loss(VL, validation_label)
@@ -268,11 +271,14 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
         parameters, alpha = update_parameters(parameters, gradients, ii, learning_rate, decay_rate)
         if ii % 10 == 0:
             costs.append(cost)
-            validation_costs.append(validation_cost)
             print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
-            # print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
+            if network_type != 'DAE':
+                validation_costs.append(validation_cost)
+                print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
 
         if ii % 100 == 0:
             print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
-            # print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
+            if network_type != 'DAE':
+                validation_costs.append(validation_cost)
+                print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
     return costs, validation_costs, parameters

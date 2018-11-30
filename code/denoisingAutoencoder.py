@@ -19,13 +19,13 @@ class DenoisingAutoencoder:
         self.test_label = test_label
 
     # TODO: need to refactor, very slow for 60k images. Check if faster implementation exists.
-    def add_noise(self, input_data):
+    def add_noise(self, input_data, noise_level):
         # noise_level is the number of pixels that are randomly chosen and corrupted by setting their values to 0
-        noise_level = 400
+        num_pixels_to_set_to_zero = int(input_data.shape[0] * noise_level / 100)
         # setting 400 random pixels to 0 in every image
         corrupted_images = []
         for i in range(input_data.shape[1]):
-            corrupted_pixels = np.random.randint(0, input_data.shape[0], noise_level)
+            corrupted_pixels = np.random.randint(0, input_data.shape[0], num_pixels_to_set_to_zero)
             corrupted_image = copy.copy(input_data[:, i])
             for pixel in corrupted_pixels:
                 corrupted_image[pixel] = 0
@@ -35,25 +35,38 @@ class DenoisingAutoencoder:
     def train(self):
         net_dims = [784, 1024, 784]
         num_iterations = 500
-        learning_rate = 0.1
+        learning_rate = 0.01
         decay_rate = 0.01
-        corrupted_images = self.add_noise(self.train_data)
+        print('Enter % of noise you want to add: ')
+        noise_level = int(input())
+        corrupted_images = self.add_noise(self.train_data, noise_level)
         network_type = 'DAE'
 
-        parameters_path = self.base_path + "/" + "parameters" + str(learning_rate).replace(".", "_") + str(net_dims[0]) + str(
-                 net_dims[1]) + str(net_dims[2])
+        parameters_path = self.base_path + "/" + "parameters" + str(learning_rate).replace(".", "_") + str(
+            net_dims[0]) + str(
+            net_dims[1]) + str(net_dims[2])
         try:
             parameters = pickle.load(open(parameters_path + ".pickle", "rb"))
         except (OSError, IOError) as e:
 
             costs, validation_costs, parameters = \
                 multi_layer_network(self.train_data, self.train_label, self.validation_data, self.validation_label,
-                                    net_dims, network_type, corrupted_input=corrupted_images, num_iterations=num_iterations,
+                                    net_dims, network_type, corrupted_input=corrupted_images,
+                                    num_iterations=num_iterations,
                                     learning_rate=learning_rate, decay_rate=decay_rate)
             pickle.dump(parameters, open(parameters_path + ".pickle", "wb"))
+
+            # Ploting cost function
+            plt.plot(costs, label='training data');
+            plt.ylabel('cost')
+            plt.xlabel('iterations')
+            plt.title("learning rate =" + str(learning_rate))
+            plt.legend(loc='upper right')
+            plt.show()
+
         '''For verification'''
         AL, cache = multi_layer_forward(corrupted_images, parameters)
-        for i in range(0, self.train_data.shape[1], int(self.train_data.shape[1]/10)):
+        for i in range(0, self.train_data.shape[1], int(self.train_data.shape[1] / 10)):
             fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
             fig.suptitle('Denoising Autoencoder', fontsize=20)
             fig.set_size_inches(18.5, 10.5, forward=True)
