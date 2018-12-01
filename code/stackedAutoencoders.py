@@ -316,29 +316,29 @@ class StackedAutoencoder:
             print("SVM Accuracy Using PCA: " + str(tsAcc))
 
         #Semi supervised SVM
-        elif architecture_option == 6:
-            train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
-                                                                                                noTrSamples=int(10000),
-                                                                                                noTsSamples=10000,
-                                                                                                digit_range=[0, 1, 2, 3, 4,
-                                                                                                             5,
-                                                                                                             6, 7, 8, 9],
-                                                                                                noTrPerClass=int(
-                                                                                                    1000),
-                                                                                                noTsPerClass=1000)
-
-            label_prop_model = LabelSpreading()
-            train_label_initial = train_label_initial.T
-            train_data_initial = train_data_initial.T
-            for i in range(0,1000,100):
-                train_label_initial[i + classification_data:i+100,:] = -1
-            label_prop_model.fit(train_data_initial, train_label_initial)
-            test_YPred = label_prop_model.predict(self.test_data.T)
-            tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-            print("Semi Supervised Acc: " + str(tsAcc))
+        # elif architecture_option == 6:
+        #     train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
+        #                                                                                         noTrSamples=int(10000),
+        #                                                                                         noTsSamples=10000,
+        #                                                                                         digit_range=[0, 1, 2, 3, 4,
+        #                                                                                                      5,
+        #                                                                                                      6, 7, 8, 9],
+        #                                                                                         noTrPerClass=int(
+        #                                                                                             1000),
+        #                                                                                         noTsPerClass=1000)
+        #
+        #     label_prop_model = LabelSpreading()
+        #     train_label_initial = train_label_initial.T
+        #     train_data_initial = train_data_initial.T
+        #     for i in range(0,1000,100):
+        #         train_label_initial[i + classification_data:i+100,:] = -1
+        #     label_prop_model.fit(train_data_initial, train_label_initial)
+        #     test_YPred = label_prop_model.predict(self.test_data.T)
+        #     tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+        #     print("Semi Supervised Acc: " + str(tsAcc))
 
         #SVM complete
-        elif architecture_option == 7:
+        elif architecture_option == 6:
             clf = svm.SVC(gamma='scale')
             clf.fit(train_data.T, train_label.T)
             # A = self.test_data
