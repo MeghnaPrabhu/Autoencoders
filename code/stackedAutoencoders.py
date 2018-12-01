@@ -172,9 +172,6 @@ class StackedAutoencoder:
             # parameters["W"+str(l+1)] = np.random.randn(net_dims[l+1], net_dims[l]) * 0.01
             # parameters["b"+str(l+1)] = np.random.randn(net_dims[l+1], 1) * 0.01
             # TODO: get weights from denoiser
-            learning_rate = 0.01
-            if l == 0:
-                learning_rate = 0.1
             costs, parameters = multi_layer_network(train_data, self.train_label, None, None, curr_layer_dims,
                                                     "SAE", None, 1000, learning_rate=0.1, activation_h='relu',
                                                     activation_f='sigmoid')
