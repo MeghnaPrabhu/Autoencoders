@@ -36,6 +36,7 @@ if __name__ == "__main__":
 
     train_data, train_label, validation_data, validation_label, test_data, test_label = \
         split_training_data(train_data_initial, train_label_initial, noTrSamples, noTrPerClass)
+
     keep_running = True
     while keep_running:
         print("Select network 1. Denoising Autoencoder 2. Stacked Autoencoder: ")
@@ -45,7 +46,7 @@ if __name__ == "__main__":
             DenoisingAutoencoder(base_path, train_data, train_label, validation_data,
                                  validation_label, test_data, test_label).train()
         elif network_option == 2:
-            stacked_AE = StackedAutoencoder(train_data, train_label, validation_data,
+            stacked_AE = StackedAutoencoder(base_path, train_data, train_label, validation_data,
                                             validation_label, test_data, test_label)
             stacked_AE.train()
         print("Press N to stop")
