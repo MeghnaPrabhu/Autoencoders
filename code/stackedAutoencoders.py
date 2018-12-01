@@ -6,7 +6,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
 from sklearn.decomposition import PCA
 from sklearn.semi_supervised import LabelSpreading
-
+import pickle
 
 class StackedAutoencoder:
 
@@ -108,7 +108,7 @@ class StackedAutoencoder:
         L = len(parameters) // 2
         A = X
         for l in range(1, L):  # since there is no W0 and b0
-            A = self.layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "relu")
+            A = self.layer_forward(A, parameters["W" + str(l)], parameters["b" + str(l)], "sigmoid")
 
         AL = self.layer_forward(A, parameters["W" + str(L)], parameters["b" + str(L)], "linear")
         return AL, A
@@ -170,15 +170,36 @@ class StackedAutoencoder:
         np.random.seed(0)
         num_layers = len(self.net_dims)
         update_parameters = {}
+        num_layers = len(self.net_dims)
+        update_parameters = {}
         train_data = self.train_data
+        h_activation = 'sigmoid'
+        f_activation = 'sigmoid'
+        learning_rate = 0.1
+        num_iterations = 1000
         for l in range(num_layers - 2):
             curr_layer_dims = [self.net_dims[l], self.net_dims[l + 1], self.net_dims[l]]
             # parameters["W"+str(l+1)] = np.random.randn(net_dims[l+1], net_dims[l]) * 0.01
             # parameters["b"+str(l+1)] = np.random.randn(net_dims[l+1], 1) * 0.01
             # TODO: get weights from denoiser
-            costs, parameters = multi_layer_network(train_data, self.train_label, None, None, curr_layer_dims,
-                                                    "SAE", None, 1000, learning_rate=0.1, activation_h='sigmoid',
-                                                    activation_f='sigmoid')
+
+            parameters_path = self.base_path + "/" + "parameters" + str(learning_rate).replace(".", "_") + str(
+                self.net_dims[0]) + str(self.net_dims[1]) + str(self.net_dims[2]) + str(f_activation) \
+                              + str(h_activation) + str(l) + str(self.train_data.shape[1])
+            costs_path = self.base_path + "/" + "costs" + str(learning_rate).replace(".", "_") + str(
+                self.net_dims[0]) + str(self.net_dims[1]) + str(self.net_dims[2]) + \
+                         str(f_activation) + str(h_activation) + str(l) + str(self.train_data.shape[1])
+            try:
+                parameters = pickle.load(open(parameters_path + ".pickle", "rb"))
+                costs = pickle.load(open(costs_path + ".pickle", "rb"))
+            except (OSError, IOError) as e:
+
+                costs, parameters = multi_layer_network(train_data, self.train_label, None, None, curr_layer_dims,
+                                                        "SAE", None, num_iterations, learning_rate=0.1, activation_h=h_activation,
+                                                        activation_f=f_activation)
+                pickle.dump(parameters, open(parameters_path + ".pickle", "wb"))
+                pickle.dump(costs, open(costs_path + ".pickle", "wb"))
+
             forward_param = {}
             update_parameters["W" + str(l + 1)] = parameters["W1"]
             update_parameters["b" + str(l + 1)] = parameters["b1"]
@@ -189,6 +210,7 @@ class StackedAutoencoder:
             # train_data, _ = multi_layer_forward(train_data, forward_param, activation_h='relu',
             #                                     activation_f='sigmoid')
             train_data  = self.layer_forward(train_data, forward_param["W1"], forward_param["b1"], "sigmoid")
+
         update_parameters["W" + str(l + 2)] = np.random.randn(self.net_dims[num_layers - 1],
                                                               self.net_dims[num_layers - 2]) * np.sqrt(
             2.0 / self.net_dims[num_layers - 1])
@@ -197,17 +219,18 @@ class StackedAutoencoder:
 
         return update_parameters
 
-    def train(self):
+    def train(self, architecture_option):
 
+        print("Enter number of training data per samples for classification:")
+        classification_data = int(input())
         train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
-                                                                                            noTrSamples=int(50),
-                                                                                            noTsSamples=5000,
+                                                                                            noTrSamples=int(classification_data * 10),
+                                                                                            noTsSamples=10000,
                                                                                             digit_range=[0, 1, 2, 3, 4,
                                                                                                          5,
                                                                                                          6, 7, 8, 9],
-                                                                                            noTrPerClass=int(
-                                                                                                5),
-                                                                                            noTsPerClass=500)
+                                                                                            noTrPerClass=int(classification_data),
+                                                                                            noTsPerClass=1000)
 
         num_iterations = 1000
         parameters = self.initialize_multilayer_weights()
@@ -238,89 +261,88 @@ class StackedAutoencoder:
             parameters["b" + str(len(self.net_dims) - 1)] = parameters["b" + str(len(self.net_dims) - 1)] - (
                     learning_rate * db)
 
-            print("Iteration ", ii, " : ", loss)
+            if architecture_option == 2:
+                print("Iteration ", ii, " : ", loss)
 
         # classify
-        test_YPred = self.classify(self.test_data, parameters)
-        tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+        test_YPred = self.classify(test_data, parameters)
+        tsAcc = ((test_YPred == test_label[0]).sum()) / (len(test_YPred)) * 100
         test_data_error = 0
         for index, pred in enumerate(test_YPred):
-            if (self.test_label[0][index] != pred):
+            if (test_label[0][index] != pred):
                 test_data_error = test_data_error + 1
 
-        teAcc = ((self.test_data.shape[1] - test_data_error) / self.test_data.shape[1]) * 100
+        if architecture_option == 2:
+            teAcc = ((test_data.shape[1] - test_data_error) / test_data.shape[1]) * 100
 
-        print('Accuracy test data: ', tsAcc, " ", teAcc)
+            print('Accuracy test data: ', tsAcc, " ", teAcc)
 
         parameters.pop("W4")
         parameters.pop("b4")
-        # A = train_data
-        # A, AL =self.multi_layer_forward(A, parameters)
-        # neigh = KNeighborsClassifier(n_neighbors=3)
-        # neigh.fit(A.T, train_label.T)
-        # A = self.test_data
-        # A, AL = self.multi_layer_forward(A, parameters)
-        # test_YPred = neigh.predict(A.T)
-        # tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-        # print("KNN Accuracy: " + str(tsAcc))
-        #
-        #
-        # A = train_data
-        # A, AL = self.multi_layer_forward(A, parameters)
-        # clf = svm.SVC(gamma='scale')
-        # clf.fit(A.T, train_label.T)
-        # A = self.test_data
-        # A, AL = self.multi_layer_forward(A, parameters)
-        # test_YPred = clf.predict(A.T)
-        # tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-        # print("SVM Accuracy: " + str(tsAcc))
+        #KNN
+        if architecture_option == 3:
+            A = train_data
+            A, AL =self.multi_layer_forward(A, parameters)
+            neigh = KNeighborsClassifier(n_neighbors=3)
+            neigh.fit(A.T, train_label.T)
+            A = self.test_data
+            A, AL = self.multi_layer_forward(A, parameters)
+            test_YPred = neigh.predict(A.T)
+            tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+            print("KNN Accuracy: " + str(tsAcc))
 
-        # A = train_data
-        # A, AL = self.multi_layer_forward(A, parameters)
-        # clf = svm.SVC(gamma='scale')
-        # clf.fit(A.T, train_label.T)
-        # A = self.test_data
-        # A, AL = self.multi_layer_forward(A, parameters)
-        # test_YPred = clf.predict(A.T)
-        # tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-        # print("SVM Accuracy: " + str(tsAcc))
+        #SVM classification after reducing using autoencoders
+        elif architecture_option == 4:
+            A = train_data
+            A, AL = self.multi_layer_forward(A, parameters)
+            clf = svm.SVC(gamma='scale')
+            clf.fit(A.T, train_label.T)
+            A = self.test_data
+            A, AL = self.multi_layer_forward(A, parameters)
+            test_YPred = clf.predict(A.T)
+            tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+            print("SVM Accuracy: " + str(tsAcc))
 
-        # pca = PCA(n_components=10)
-        # data = pca.fit_transform(train_data.T)
-        # clf = svm.SVC(gamma='scale')
-        # clf.fit(data, train_label.T)
-        # A = self.test_data
-        # test_data = pca.fit_transform(self.test_data.T)
-        # test_YPred = clf.predict(test_data)
-        # tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-        # print("SVM Accuracy Using PCA: " + str(tsAcc))
+        #SVM after PCA
+        elif architecture_option == 5:
+            pca = PCA(n_components=10)
+            data = pca.fit_transform(train_data.T)
+            clf = svm.SVC(gamma='scale')
+            clf.fit(data, train_label.T)
+            A = self.test_data
+            test_data = pca.fit_transform(self.test_data.T)
+            test_YPred = clf.predict(test_data)
+            tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+            print("SVM Accuracy Using PCA: " + str(tsAcc))
 
-        # train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
-        #                                                                                     noTrSamples=int(1000),
-        #                                                                                     noTsSamples=5000,
-        #                                                                                     digit_range=[0, 1, 2, 3, 4,
-        #                                                                                                  5,
-        #                                                                                                  6, 7, 8, 9],
-        #                                                                                     noTrPerClass=int(
-        #                                                                                         100),
-        #                                                                                     noTsPerClass=500)
-        #
-        # label_prop_model = LabelSpreading()
-        # label_count = 0
-        # train_label_initial = train_label_initial.T
-        # train_data_initial = train_data_initial.T
-        # for i in range(0,1000,100):
-        #     train_label_initial[i + 5:i+100,:] = -1
-        # label_prop_model.fit(train_data_initial, train_label_initial)
-        # test_YPred = label_prop_model.predict(self.test_data.T)
-        # tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-        # print("Semi Supervised Acc: " + str(tsAcc))
+        #Semi supervised SVM
+        elif architecture_option == 6:
+            train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
+                                                                                                noTrSamples=int(10000),
+                                                                                                noTsSamples=10000,
+                                                                                                digit_range=[0, 1, 2, 3, 4,
+                                                                                                             5,
+                                                                                                             6, 7, 8, 9],
+                                                                                                noTrPerClass=int(
+                                                                                                    1000),
+                                                                                                noTsPerClass=1000)
 
+            label_prop_model = LabelSpreading()
+            train_label_initial = train_label_initial.T
+            train_data_initial = train_data_initial.T
+            for i in range(0,1000,100):
+                train_label_initial[i + classification_data:i+100,:] = -1
+            label_prop_model.fit(train_data_initial, train_label_initial)
+            test_YPred = label_prop_model.predict(self.test_data.T)
+            tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+            print("Semi Supervised Acc: " + str(tsAcc))
 
-        # clf = svm.SVC(gamma='scale')
-        # clf.fit(train_data.T, train_label.T)
-        # # A = self.test_data
-        # # A, AL = self.multi_layer_forward(A, parameters)
-        # test_YPred = clf.predict(self.test_data.T)
-        # acc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
-        # print("SVM Accuracy: " + str(acc))
+        #SVM complete
+        elif architecture_option == 7:
+            clf = svm.SVC(gamma='scale')
+            clf.fit(train_data.T, train_label.T)
+            # A = self.test_data
+            # A, AL = self.multi_layer_forward(A, parameters)
+            test_YPred = clf.predict(self.test_data.T)
+            acc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
+            print("SVM Accuracy: " + str(acc))

@@ -44,17 +44,19 @@ if __name__ == "__main__":
 
     keep_running = True
     while keep_running:
-        print("Select network 1. Denoising Autoencoder 2. Stacked Autoencoder 3.KNN 4. Semi-Supervised SVM")
+        print(
+            "Select network 1. Denoising Autoencoder 2. Stacked Autoencoder 3.KNN 4. SVM classifier after "
+            "Autoencoders(Deep) reduction 5. SVM after PCA 6.Semi Supervised SVM 7.SVM on full data")
         network_option = int(input())
 
         if network_option == 1:
             DenoisingAutoencoder(base_path, train_data, train_label, validation_data,
                                  validation_label, test_data, test_label).train()
-        elif network_option == 2:
+        elif network_option >= 2:
             stacked_AE = StackedAutoencoder(base_path, train_data, train_label, validation_data,
                                             validation_label, test_data, test_label)
 
-            stacked_AE.train()
+            stacked_AE.train(network_option)
         print("Press N to stop")
         input_option = input()
         if input_option == "N":
