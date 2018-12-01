@@ -61,7 +61,7 @@ class StackedAutoencoder:
         dZ = np.array(dA, copy=True)
         return dZ
 
-    def sigmoid(Z):
+    def sigmoid(self, Z):
         '''
         computes sigmoid activation of Z
 
@@ -167,14 +167,16 @@ class StackedAutoencoder:
         num_layers = len(self.net_dims)
         update_parameters = {}
         train_data = self.train_data
-        for l in range(num_layers - 1):
+        for l in range(num_layers - 2):
             curr_layer_dims = [self.net_dims[l], self.net_dims[l + 1], self.net_dims[l]]
             # parameters["W"+str(l+1)] = np.random.randn(net_dims[l+1], net_dims[l]) * 0.01
             # parameters["b"+str(l+1)] = np.random.randn(net_dims[l+1], 1) * 0.01
             # TODO: get weights from denoiser
-
+            learning_rate = 0.01
+            if l == 0:
+                learning_rate = 0.1
             costs, parameters = multi_layer_network(train_data, self.train_label, None, None, curr_layer_dims,
-                                                    "SAE", None, 500, learning_rate=0.1, activation_h='sigmoid',
+                                                    "SAE", None, 1000, learning_rate=0.1, activation_h='relu',
                                                     activation_f='sigmoid')
             forward_param = {}
             update_parameters["W" + str(l + 1)] = parameters["W1"]
@@ -184,11 +186,11 @@ class StackedAutoencoder:
 
             # train_data, _ = multi_layer_forward(train_data, forward_param, activation_h='relu',
             #                                     activation_f='sigmoid')
-            train_data  = self.layer_forward(train_data, forward_param["W1"], forward_param["b1"], "sigmoid")
-        update_parameters["W" + str(l + 1)] = np.random.randn(self.net_dims[num_layers - 1],
+            train_data  = self.layer_forward(train_data, forward_param["W1"], forward_param["b1"], "relu")
+        update_parameters["W" + str(l + 2)] = np.random.randn(self.net_dims[num_layers - 1],
                                                               self.net_dims[num_layers - 2]) * np.sqrt(
             2.0 / self.net_dims[num_layers - 1])
-        update_parameters["b" + str(l + 1)] = np.random.randn(self.net_dims[num_layers - 1], 1) * np.sqrt(
+        update_parameters["b" + str(l + 2)] = np.random.randn(self.net_dims[num_layers - 1], 1) * np.sqrt(
             2.0 / self.net_dims[num_layers - 2])
 
         return update_parameters
@@ -197,23 +199,24 @@ class StackedAutoencoder:
 
         train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
                                                                                             noTrSamples=int(50),
-                                                                                            noTsSamples=1000,
+                                                                                            noTsSamples=5000,
                                                                                             digit_range=[0, 1, 2, 3, 4,
                                                                                                          5,
                                                                                                          6, 7, 8, 9],
                                                                                             noTrPerClass=int(
                                                                                                 5),
-                                                                                            noTsPerClass=100)
+                                                                                            noTsPerClass=500)
 
         num_iterations = 1000
         parameters = self.initialize_multilayer_weights()
         # A = self.train_data
-        learning_rate = 0.2
+        learning_rate = 0.1
         for ii in range(num_iterations):
             self.train_data = train_data_initial
             self.train_label = train_label_initial
             A = self.train_data
             AL, A_prev = self.multi_layer_forward(A, parameters)
+
             A = np.exp(AL - np.max(AL, axis=0)) / np.sum(np.exp(AL - np.max(AL, axis=0)), axis=0, keepdims=True)
             loss = 0
             for i in range(0, self.train_label.shape[1]):
@@ -246,4 +249,4 @@ class StackedAutoencoder:
 
         teAcc = ((self.test_data.shape[1] - test_data_error) / self.test_data.shape[1]) * 100
 
-        print('Accuracy test data: ', tsAcc)
+        print('Accuracy test data: ', tsAcc, " ", teAcc)

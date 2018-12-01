@@ -249,7 +249,7 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
 
     activation_h = activation_h
     activation_f = activation_f
-    parameters = initialize_weights(net_dims, network_type)
+    parameters = initialize_weights(net_dims, 'DAE')
     costs = []
     validation_costs = []
     if network_type == 'DAE':
