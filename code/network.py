@@ -7,7 +7,6 @@ hkdv1@asu.edu
 Oct 2018
 '''
 import numpy as np
-import pickle
 from activations import Activations
 
 def initialize_weights(net_dims, network_type):
@@ -230,7 +229,7 @@ def update_parameters(parameters, gradients, epoch, learning_rate, decay_rate=0.
     return parameters, learning_rate
 
 
-def multi_layer_network(X, Y, validation_data, validation_label, net_dims, network_type, parameters_path, costs_path, corrupted_input=None,
+def multi_layer_network(X, Y, validation_data, validation_label, net_dims, network_type, corrupted_input=None,
                         num_iterations=500, learning_rate=0.2, decay_rate=0.01, activation_h ='sigmoid', activation_f = 'sigmoid'):
     '''
 
@@ -247,50 +246,45 @@ def multi_layer_network(X, Y, validation_data, validation_label, net_dims, netwo
      costs - list of costs over training
      parameters - dictionary of trained network parameters
     '''
-    try:
-        parameters = pickle.load(open(parameters_path + ".pickle", "rb"))
-        costs = pickle.load(open(costs_path + ".pickle", "rb"))
-    except (OSError, IOError, EOFError) as e:
-        activation_h = activation_h
-        activation_f = activation_f
-        parameters = initialize_weights(net_dims, network_type)
-        costs = []
-        validation_costs = []
-        if network_type == 'DAE':
-            data = corrupted_input
-        elif network_type == 'SAE':
-            data = X
-        for ii in range(num_iterations):
-            # Forward Prop
-            AL, caches = multi_layer_forward(data, parameters, activation_h, activation_f)
 
-                # denoising autoencoder so use MSE
-            cost = Activations.mean_squared_error(AL, X)
-            dz = Activations.mean_squared_error_der(X, AL)
+    activation_h = activation_h
+    activation_f = activation_f
+    parameters = initialize_weights(net_dims, network_type)
+    costs = []
+    validation_costs = []
+    if network_type == 'DAE':
+        data = corrupted_input
+    elif network_type == 'SAE':
+        data = X
+    for ii in range(num_iterations):
+        # Forward Prop
+        AL, caches = multi_layer_forward(data, parameters, activation_h, activation_f)
 
-            # else:
-            #     # stacked autoencoder
-            #     VL, validation_caches = multi_layer_forward(validation_data, parameters, activation_h, activation_f)
-            #     A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
-            #     validation_prediction, validation_cache, validation_cost = \
-            #         Activations.softmax_cross_entropy_loss(VL, validation_label)
-            #     dz = Activations.softmax_cross_entropy_loss_der(Y, cache)
+            # denoising autoencoder so use MSE
+        cost = Activations.mean_squared_error(AL, X)
+        dz = Activations.mean_squared_error_der(X, AL)
 
-            # Backward Prop
-            gradients = multi_layer_backward(dz, caches, parameters, activation_h, activation_f)
-            parameters, alpha = update_parameters(parameters, gradients, ii, learning_rate, decay_rate)
-            if ii % 10 == 0:
-                costs.append(cost)
-                print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
-                # if network_type != 'DAE':
-                #     validation_costs.append(validation_cost)
-                #     print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
+        # else:
+        #     # stacked autoencoder
+        #     VL, validation_caches = multi_layer_forward(validation_data, parameters, activation_h, activation_f)
+        #     A, cache, cost = Activations.softmax_cross_entropy_loss(AL, Y)
+        #     validation_prediction, validation_cache, validation_cost = \
+        #         Activations.softmax_cross_entropy_loss(VL, validation_label)
+        #     dz = Activations.softmax_cross_entropy_loss_der(Y, cache)
 
-            # if ii % 100 == 0:
-            #     print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
-                # if network_type != 'DAE':
-                #     validation_costs.append(validation_cost)
-                #     print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
-            pickle.dump(parameters, open(parameters_path + ".pickle", "wb"))
-            pickle.dump(costs, open(costs_path + ".pickle", "wb"))
+        # Backward Prop
+        gradients = multi_layer_backward(dz, caches, parameters, activation_h, activation_f)
+        parameters, alpha = update_parameters(parameters, gradients, ii, learning_rate, decay_rate)
+        if ii % 10 == 0:
+            costs.append(cost)
+            print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
+            # if network_type != 'DAE':
+            #     validation_costs.append(validation_cost)
+            #     print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
+
+        # if ii % 100 == 0:
+        #     print("Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, cost, alpha))
+            # if network_type != 'DAE':
+            #     validation_costs.append(validation_cost)
+            #     print("Validation Cost at iteration %i is: %.05f, learning rate: %.05f" % (ii, validation_cost, alpha))
     return costs, parameters#validation_costs,

@@ -15,8 +15,6 @@ class StackedAutoencoder:
         self.validation_data = validation_data
         self.validation_label = validation_label
         self.net_dims = [784, 500, 300, 100, 10]
-        self.num_iterations = 1000
-        self.learning_rate = 0.1
 
     def classify(self, X, parameters):
 
@@ -25,9 +23,10 @@ class StackedAutoencoder:
         YPred = np.exp(AL - np.max(AL, axis=0)) / np.sum(np.exp(AL - np.max(AL, axis=0)), axis=0, keepdims=True)
         YPred = np.argmax(YPred, axis=0)
 
-        AL, A = self.multi_layer_forward(X, parameters)
+        AL, A  = self.multi_layer_forward(X, parameters)
         Ypred = np.exp(AL - np.max(AL, axis=0)) / np.sum(np.exp(AL - np.max(AL, axis=0)), axis=0, keepdims=True)
         Ypred = Ypred.argmax(axis=0)
+
 
         return YPred
 
@@ -61,6 +60,20 @@ class StackedAutoencoder:
         '''
         dZ = np.array(dA, copy=True)
         return dZ
+
+    def sigmoid(Z):
+        '''
+        computes sigmoid activation of Z
+
+        Inputs:
+            Z is a numpy.ndarray (n, m)
+
+        Returns:
+            A is activation. numpy.ndarray (n, m)
+            cache is a dictionary with {"Z", Z}
+        '''
+        A = 1 / (1 + np.exp(-Z))
+        return A
 
     def relu(self, Z):
         '''
@@ -135,6 +148,8 @@ class StackedAutoencoder:
             A = self.relu(Z)
         elif activation == "linear":
             A = self.linear(Z)
+        elif activation == "sigmoid":
+            A = self.sigmoid(Z)
 
         return A
 
@@ -152,24 +167,14 @@ class StackedAutoencoder:
         num_layers = len(self.net_dims)
         update_parameters = {}
         train_data = self.train_data
-
         for l in range(num_layers - 1):
             curr_layer_dims = [self.net_dims[l], self.net_dims[l + 1], self.net_dims[l]]
             # parameters["W"+str(l+1)] = np.random.randn(net_dims[l+1], net_dims[l]) * 0.01
             # parameters["b"+str(l+1)] = np.random.randn(net_dims[l+1], 1) * 0.01
             # TODO: get weights from denoiser
 
-            parameters_path = self.base_path + "/" + "parameters" + str(self.learning_rate).replace(".", "_") + str(
-                self.net_dims[1]) + str(
-                self.net_dims[2]) + str(self.net_dims[3]) + "sigmoid" + "relu" + str(self.num_iterations) + str(
-                self.train_data.shape[1]) + str(l)
-            costs_path = self.base_path + "/" + "costs" + str(self.learning_rate).replace(".", "_") + str(
-                self.net_dims[1]) + str(
-                self.net_dims[2]) + str(self.net_dims[3]) + "sigmoid" + "relu" + str(self.num_iterations) + str(
-                self.train_data.shape[1]) + str(l)
-
             costs, parameters = multi_layer_network(train_data, self.train_label, None, None, curr_layer_dims,
-                                                    "SAE",parameters_path,costs_path, None, 500, learning_rate=0.1, activation_h='relu',
+                                                    "SAE", None, 500, learning_rate=0.1, activation_h='sigmoid',
                                                     activation_f='sigmoid')
             forward_param = {}
             update_parameters["W" + str(l + 1)] = parameters["W1"]
@@ -177,8 +182,9 @@ class StackedAutoencoder:
             forward_param["W1"] = parameters["W1"]
             forward_param["b1"] = parameters["b1"]
 
-            train_data, _ = self.multi_layer_forward(train_data, parameters)
-
+            # train_data, _ = multi_layer_forward(train_data, forward_param, activation_h='relu',
+            #                                     activation_f='sigmoid')
+            train_data  = self.layer_forward(train_data, forward_param["W1"], forward_param["b1"], "sigmoid")
         update_parameters["W" + str(l + 1)] = np.random.randn(self.net_dims[num_layers - 1],
                                                               self.net_dims[num_layers - 2]) * np.sqrt(
             2.0 / self.net_dims[num_layers - 1])
@@ -199,11 +205,11 @@ class StackedAutoencoder:
                                                                                                 5),
                                                                                             noTsPerClass=100)
 
-        self.num_iterations = 1000
+        num_iterations = 1000
         parameters = self.initialize_multilayer_weights()
         # A = self.train_data
-        self.learning_rate = 0.1
-        for ii in range(self.num_iterations):
+        learning_rate = 0.2
+        for ii in range(num_iterations):
             self.train_data = train_data_initial
             self.train_label = train_label_initial
             A = self.train_data
@@ -224,15 +230,15 @@ class StackedAutoencoder:
 
             parameters["W" + str(len(self.net_dims) - 1)] = parameters[
                                                                 "W" + str(len(self.net_dims) - 1)] - (
-                                                                    self.learning_rate * dW)
+                                                                    learning_rate * dW)
             parameters["b" + str(len(self.net_dims) - 1)] = parameters["b" + str(len(self.net_dims) - 1)] - (
-                    self.learning_rate * db)
+                    learning_rate * db)
 
             print("Iteration ", ii, " : ", loss)
 
         # classify
         test_YPred = self.classify(self.test_data, parameters)
-        tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred) * 100)
+        tsAcc = ((test_YPred == self.test_label[0]).sum()) / (len(test_YPred)) * 100
         test_data_error = 0
         for index, pred in enumerate(test_YPred):
             if (self.test_label[0][index] != pred):

@@ -7,10 +7,15 @@ import sys
 
 def split_training_data(train_data_initial, train_label_initial, noTrSamples, noTrPerClass):
     # TODO: uncomment and correct this
-    train_data = train_data_initial[:, :1000]
-    validation_data = train_data_initial[:, 1000:1200]
-    train_label = train_label_initial[:, :1000]
-    validation_label = train_label_initial[:, 1000:1200]
+    # train_data = train_data_initial[:, :1000]
+    # validation_data = train_data_initial[:, 1000:1200]
+    # train_label = train_label_initial[:, :1000]
+    # validation_label = train_label_initial[:, 1000:1200]
+
+    train_data = train_data_initial
+    validation_data = train_data_initial
+    train_label = train_label_initial
+    validation_label = train_label_initial
     # for i in range(5000, 60000, 6000):
     #     train_data = np.concatenate((train_data, train_data_initial[:, i:i + 4000]), axis=1)
     #     validation_data = np.concatenate((validation_data, train_data_initial[:, i + 4000:i + 5000]), axis=1)
