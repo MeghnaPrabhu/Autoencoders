@@ -221,7 +221,7 @@ class StackedAutoencoder:
 
     def train(self, architecture_option):
 
-        print("Enter number of training data per samples for classification:")
+        print("Enter number of training data per class for classification:")
         classification_data = int(input())
         train_data_initial, train_label_initial, test_data, test_label = load_fashion_mnist(self.base_path,
                                                                                             noTrSamples=int(classification_data * 10),

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     while keep_running:
         print(
             "Select network 1. Denoising Autoencoder 2. Stacked Autoencoder 3.KNN 4. SVM classifier after "
-            "Autoencoders(Deep) reduction 5. SVM after PCA 6.SVM on full data")
+            "Autoencoders(Deep) reduction 5. SVM after PCA 6. SVM on full data")
         network_option = int(input())
 
         if network_option == 1:
